@@ -1,0 +1,105 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: sources
+// Fields: title (string), type (string), author (string), url (string), createdAt (timestamp), userId (string)
+//
+// Collection: chunks
+// Fields: sourceId (string), content (string), userId (string), createdAt (timestamp)
+//
+// Collection: knowledge
+// Fields: title (string), content (string), type (string), sourceId (string), userId (string), tags (list), confidence (number), createdAt (timestamp)
+//
+// Collection: relationships
+// Fields: fromId (string), toId (string), type (string), userId (string)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidSource(data) {
+      return data.keys().hasAll(['title', 'type', 'userId']) &&
+             isValidString(data.title, 200) &&
+             data.type in ['book', 'course', 'note', 'article'] &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidChunk(data) {
+      return data.keys().hasAll(['sourceId', 'content', 'userId']) &&
+             isValidString(data.content, 10000) &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidKnowledge(data) {
+      return data.keys().hasAll(['title', 'content', 'type', 'userId']) &&
+             isValidString(data.title, 300) &&
+             isValidString(data.content, 5000) &&
+             data.type in ['principle', 'framework', 'insight'] &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidRelationship(data) {
+      return data.keys().hasAll(['fromId', 'toId', 'type', 'userId']) &&
+             data.type in ['relates_to', 'derived_from', 'used_in'] &&
+             data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /sources/{sourceId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isValidSource(request.resource.data);
+      allow update: if isDocOwner() && isValidSource(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /chunks/{chunkId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isValidChunk(request.resource.data);
+      allow update: if isDocOwner() && isValidChunk(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /knowledge/{unitId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isValidKnowledge(request.resource.data);
+      allow update: if isDocOwner() && isValidKnowledge(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /relationships/{relId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isValidRelationship(request.resource.data);
+      allow update: if isDocOwner() && isValidRelationship(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+  }
+}

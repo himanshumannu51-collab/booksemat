@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Source": {
+      "title": "Source",
+      "description": "The origin of the knowledge (Book, Course, Note, etc.)",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the source" },
+        "type": { "type": "string", "enum": ["book", "course", "note", "article"], "description": "Type of source" },
+        "author": { "type": "string", "description": "Author of the source" },
+        "url": { "type": "string", "format": "url", "description": "URL if applicable" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["title", "type", "userId"]
+    },
+    "Chunk": {
+      "title": "Chunk",
+      "description": "Raw text segments from sources",
+      "type": "object",
+      "properties": {
+        "sourceId": { "type": "string" },
+        "content": { "type": "string" },
+        "embedding": { "type": "array", "description": "Vector representation (optional for now)" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sourceId", "content", "userId"]
+    },
+    "KnowledgeUnit": {
+      "title": "Knowledge Unit",
+      "description": "A principle, framework, or insight",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["principle", "framework", "insight"] },
+        "sourceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "tags": { "type": "array" },
+        "confidence": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "type", "userId"]
+    },
+    "Relationship": {
+      "title": "Relationship",
+      "description": "Links between knowledge units",
+      "type": "object",
+      "properties": {
+        "fromId": { "type": "string" },
+        "toId": { "type": "string" },
+        "type": { "type": "string", "enum": ["relates_to", "derived_from", "used_in"] },
+        "userId": { "type": "string" }
+      },
+      "required": ["fromId", "toId", "type", "userId"]
+    }
+  },
+  "firestore": {
+    "/sources/{sourceId}": { "schema": "Source", "description": "Collection of sources" },
+    "/chunks/{chunkId}": { "schema": "Chunk", "description": "Collection of raw text chunks" },
+    "/knowledge/{unitId}": { "schema": "KnowledgeUnit", "description": "Collection of extracted knowledge units" },
+    "/relationships/{relId}": { "schema": "Relationship", "description": "Collection of links between units" }
+  }
+}
